@@ -1,0 +1,8 @@
+# Copy this file to application-local.properties and fill in your Gmail.
+# application-local.properties is gitignored — never commit real passwords.
+
+spring.mail.username=YOUR_GMAIL@gmail.com
+spring.mail.password=YOUR_APP_PASSWORD
+app.mail.from=YOUR_GMAIL@gmail.com
+app.mail.enabled=true
+app.mail.auto-verify-when-disabled=false

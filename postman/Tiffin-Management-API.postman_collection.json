@@ -1,0 +1,626 @@
+{
+  "info": {
+    "_postman_id": "tiffin-management-api",
+    "name": "Tiffin Management API",
+    "description": "Complete API collection for Tiffin Management (Spring Boot).\n\n**Quick start**\n1. Import this collection + the Local environment file.\n2. Start backend: `mvn spring-boot:run` (port 8080).\n3. Run **Auth → Admin Login** — token is saved automatically.\n4. Call any Admin folder request.\n5. For student APIs, run **Auth → Student Login** first.\n\n**Swagger UI:** {{baseUrl}}/swagger-ui.html",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "adminEmail", "value": "admin@tiffin.com" },
+    { "key": "adminPassword", "value": "Admin@123" },
+    { "key": "studentEmail", "value": "student@example.com" },
+    { "key": "studentPassword", "value": "Student@123" },
+    { "key": "adminToken", "value": "" },
+    { "key": "studentToken", "value": "" },
+    { "key": "studentId", "value": "1" },
+    { "key": "orderId", "value": "1" },
+    { "key": "menuId", "value": "1" },
+    { "key": "attendanceId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Public auth endpoints. Run login requests first — they auto-save JWT tokens.",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const res = pm.response.json();",
+                  "  pm.collectionVariables.set('adminToken', res.token);",
+                  "  if (pm.environment.name) pm.environment.set('adminToken', res.token);",
+                  "  console.log('Admin token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"loginAs\": \"ADMIN\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Login as admin. Default: admin@tiffin.com / Admin@123"
+          }
+        },
+        {
+          "name": "Student Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const res = pm.response.json();",
+                  "  pm.collectionVariables.set('studentToken', res.token);",
+                  "  if (pm.environment.name) pm.environment.set('studentToken', res.token);",
+                  "  if (res.studentId) {",
+                  "    pm.collectionVariables.set('studentId', res.studentId);",
+                  "    if (pm.environment.name) pm.environment.set('studentId', res.studentId);",
+                  "  }",
+                  "  console.log('Student token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\",\n  \"loginAs\": \"STUDENT\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Login as student. Update studentEmail/studentPassword in environment."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/logout"
+          }
+        },
+        {
+          "name": "Register Student",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "data",
+                  "value": "{\n  \"fullName\": \"Test Student\",\n  \"mobileNumber\": \"0712345678\",\n  \"email\": \"newstudent@example.com\",\n  \"physicalAddress\": \"Colombo, Sri Lanka\",\n  \"aadhaarNumber\": \"123456789012\",\n  \"password\": \"Student@123\"\n}",
+                  "type": "text",
+                  "contentType": "application/json"
+                },
+                {
+                  "key": "aadhaarImage",
+                  "type": "file",
+                  "src": [],
+                  "description": "Select a JPG/PNG image file"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/auth/register",
+            "description": "Multipart: `data` (JSON) + `aadhaarImage` (file). Email must be verified before login."
+          }
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-email?token=YOUR_TOKEN_HERE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "verify-email"],
+              "query": [{ "key": "token", "value": "YOUR_TOKEN_HERE" }]
+            }
+          }
+        },
+        {
+          "name": "Resend Verification",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newstudent@example.com\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/resend-verification"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "Requires admin JWT. Run **Auth → Admin Login** first.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "Dashboard",
+          "item": [
+            {
+              "name": "Get Dashboard Stats",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/dashboard"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Students",
+          "item": [
+            {
+              "name": "Get All Students",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/students?page=0&size=10&search=",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "students"],
+                  "query": [
+                    { "key": "page", "value": "0" },
+                    { "key": "size", "value": "10" },
+                    { "key": "search", "value": "" }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Student By ID",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/students/{{studentId}}"
+              }
+            },
+            {
+              "name": "Update Student",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Updated Name\",\n  \"mobileNumber\": \"0712345678\",\n  \"physicalAddress\": \"New Address\"\n}"
+                },
+                "url": "{{baseUrl}}/api/admin/students/{{studentId}}"
+              }
+            },
+            {
+              "name": "Toggle Student Status",
+              "request": {
+                "method": "PATCH",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/students/{{studentId}}/status?active=true",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "students", "{{studentId}}", "status"],
+                  "query": [{ "key": "active", "value": "true" }]
+                }
+              }
+            },
+            {
+              "name": "Delete Student",
+              "request": {
+                "method": "DELETE",
+                "url": "{{baseUrl}}/api/admin/students/{{studentId}}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Orders",
+          "item": [
+            {
+              "name": "Get All Orders",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/orders?page=0&size=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "orders"],
+                  "query": [
+                    { "key": "page", "value": "0" },
+                    { "key": "size", "value": "10" }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Order Stats",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/orders/stats"
+              }
+            },
+            {
+              "name": "Get Order By ID",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/orders/{{orderId}}"
+              }
+            },
+            {
+              "name": "Update Order Status",
+              "request": {
+                "method": "PATCH",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"DELIVERED\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": "{{baseUrl}}/api/admin/orders/{{orderId}}/status",
+                "description": "Status: PLACED | PREPARING | DELIVERED | CANCELLED"
+              }
+            },
+            {
+              "name": "Delete Order",
+              "request": {
+                "method": "DELETE",
+                "url": "{{baseUrl}}/api/admin/orders/{{orderId}}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Menus",
+          "item": [
+            {
+              "name": "Create Menu",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"menuDate\": \"2026-06-19\",\n  \"menuType\": \"DAILY\",\n  \"breakfast\": \"Poha, Tea\",\n  \"lunch\": \"Dal Rice, Roti, Sabzi\",\n  \"dinner\": \"Khichdi, Curd\",\n  \"description\": \"Today's special menu\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": "{{baseUrl}}/api/admin/menus",
+                "description": "menuType: DAILY | WEEKLY"
+              }
+            },
+            {
+              "name": "Get All Menus",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/menus?page=0&size=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "menus"],
+                  "query": [
+                    { "key": "page", "value": "0" },
+                    { "key": "size", "value": "10" }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Menu By ID",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/menus/{{menuId}}"
+              }
+            },
+            {
+              "name": "Update Menu",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"menuDate\": \"2026-06-19\",\n  \"menuType\": \"DAILY\",\n  \"breakfast\": \"Idli, Sambar\",\n  \"lunch\": \"Biryani, Raita\",\n  \"dinner\": \"Roti, Dal\",\n  \"description\": \"Updated menu\"\n}"
+                },
+                "url": "{{baseUrl}}/api/admin/menus/{{menuId}}"
+              }
+            },
+            {
+              "name": "Delete Menu",
+              "request": {
+                "method": "DELETE",
+                "url": "{{baseUrl}}/api/admin/menus/{{menuId}}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Attendance",
+          "item": [
+            {
+              "name": "Mark Attendance",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"studentId\": {{studentId}},\n  \"attendanceDate\": \"2026-06-19\",\n  \"present\": true,\n  \"notes\": \"Present for lunch\"\n}"
+                },
+                "url": "{{baseUrl}}/api/admin/attendance"
+              }
+            },
+            {
+              "name": "Get All Attendance",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/attendance?page=0&size=10&date=2026-06-19",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "attendance"],
+                  "query": [
+                    { "key": "page", "value": "0" },
+                    { "key": "size", "value": "10" },
+                    { "key": "date", "value": "2026-06-19" }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Attendance By ID",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/admin/attendance/{{attendanceId}}"
+              }
+            },
+            {
+              "name": "Update Attendance",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"studentId\": {{studentId}},\n  \"attendanceDate\": \"2026-06-19\",\n  \"present\": false,\n  \"notes\": \"Absent\"\n}"
+                },
+                "url": "{{baseUrl}}/api/admin/attendance/{{attendanceId}}"
+              }
+            },
+            {
+              "name": "Delete Attendance",
+              "request": {
+                "method": "DELETE",
+                "url": "{{baseUrl}}/api/admin/attendance/{{attendanceId}}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reports (PDF)",
+          "item": [
+            {
+              "name": "Download Orders PDF",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/reports/orders/pdf?from=2026-06-01&to=2026-06-30&status=DELIVERED",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "reports", "orders", "pdf"],
+                  "query": [
+                    { "key": "from", "value": "2026-06-01" },
+                    { "key": "to", "value": "2026-06-30" },
+                    { "key": "status", "value": "DELIVERED", "description": "Optional: PLACED|PREPARING|DELIVERED|CANCELLED" }
+                  ]
+                },
+                "description": "In Postman: Send and Save Response → Save to a file to view PDF."
+              }
+            },
+            {
+              "name": "Download Students PDF",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/reports/students/pdf?search=",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "reports", "students", "pdf"],
+                  "query": [{ "key": "search", "value": "" }]
+                }
+              }
+            },
+            {
+              "name": "Download Attendance PDF",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/reports/attendance/pdf?date=2026-06-19",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "admin", "reports", "attendance", "pdf"],
+                  "query": [{ "key": "date", "value": "2026-06-19" }]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Student",
+      "description": "Requires student JWT. Run **Auth → Student Login** first.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{studentToken}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "Profile",
+          "item": [
+            {
+              "name": "Get Profile",
+              "request": {
+                "method": "GET",
+                "url": "{{baseUrl}}/api/student/profile"
+              }
+            },
+            {
+              "name": "Update Profile",
+              "request": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"My Updated Name\",\n  \"mobileNumber\": \"0712345678\",\n  \"physicalAddress\": \"Updated address\"\n}"
+                },
+                "url": "{{baseUrl}}/api/student/profile"
+              }
+            },
+            {
+              "name": "Update Aadhaar Image",
+              "request": {
+                "method": "PUT",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "aadhaarImage",
+                      "type": "file",
+                      "src": []
+                    }
+                  ]
+                },
+                "url": "{{baseUrl}}/api/student/profile/aadhaar"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Orders",
+          "item": [
+            {
+              "name": "Place Order",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"orderDate\": \"2026-06-20\",\n  \"mealType\": \"FULL_DAY\",\n  \"quantity\": 1,\n  \"notes\": \"No onion please\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": "{{baseUrl}}/api/student/orders",
+                "description": "mealType: BREAKFAST | LUNCH | DINNER | FULL_DAY"
+              }
+            },
+            {
+              "name": "Get My Orders",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/student/orders?page=0&size=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "student", "orders"],
+                  "query": [
+                    { "key": "page", "value": "0" },
+                    { "key": "size", "value": "10" }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Cancel Order",
+              "request": {
+                "method": "PATCH",
+                "url": "{{baseUrl}}/api/student/orders/{{orderId}}/cancel"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Menus",
+          "item": [
+            {
+              "name": "Get Daily Menu",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/student/menus/daily?date=2026-06-19",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "student", "menus", "daily"],
+                  "query": [{ "key": "date", "value": "2026-06-19" }]
+                }
+              }
+            },
+            {
+              "name": "Get Weekly Menu",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/student/menus/weekly?startDate=2026-06-16",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "student", "menus", "weekly"],
+                  "query": [{ "key": "startDate", "value": "2026-06-16" }]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Attendance",
+          "item": [
+            {
+              "name": "Get My Attendance",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/student/attendance?page=0&size=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "student", "attendance"],
+                  "query": [
+                    { "key": "page", "value": "0" },
+                    { "key": "size", "value": "10" }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Attendance Calendar",
+              "request": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/student/attendance/calendar?year=2026&month=6",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "student", "attendance", "calendar"],
+                  "query": [
+                    { "key": "year", "value": "2026" },
+                    { "key": "month", "value": "6" }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "description": "Requires admin or student JWT (student can only access own Aadhaar).",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "Get Aadhaar Image",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/files/aadhaar/{{studentId}}",
+            "description": "Returns image file. Use admin token or student token (own ID only)."
+          }
+        }
+      ]
+    }
+  ]
+}
